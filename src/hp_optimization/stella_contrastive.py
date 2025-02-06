@@ -4,7 +4,9 @@ from sentence_transformers import SentenceTransformer, SentenceTransformerTraine
 from sentence_transformers.evaluation import BinaryClassificationEvaluator
 import multiprocessing
 
-num_workers = multiprocessing.cpu_count()
+SEED = 42
+
+num_workers = min(multiprocessing.cpu_count()//2, 4)
 
 dataset_dict = load_dataset("WhereIsAI/github-issue-similarity", "default")
 dataset_dict = dataset_dict.rename_columns({"text1": "sentence1", "text2": "sentence2"})
@@ -21,18 +23,17 @@ def remove_html_tags(sample):
     sample["sentence2"] = BeautifulSoup(sample["text2"], "html.parser").get_text()
     return sample
 
-dataset_dict = dataset_dict.map(remove_html_tags, num_proc=num_workers//2)
-trainer = SentenceTransformerTrainer()
+dataset_dict = dataset_dict.map(remove_html_tags, num_proc=num_workers)
 
 def hpo_search_space(trial):
     return {
         "num_train_epochs": trial.suggest_int("num_train_epochs", 1, 8),
-        "per_device_train_batch_size": trial.suggest_categorical("per_device_train_batch_size", [32, 64, 128]),
+        "per_device_train_batch_size": trial.suggest_categorical("per_device_train_batch_size", [32, 64, 128, 160]),
         "learning_rate": trial.suggest_float("learning_rate", 1e-6, 1e-4, log=True),
-        "warmup_ratio": trial.suggest_float("warmup_ratio", 0.1, 0.3),
+        "warmup_ratio": trial.suggest_float("warmup_ratio", 0.05, 0.3),
         "weight_decay": trial.suggest_float("weight_decay", 0.0, 0.3),
         "scheduler_type": trial.suggest_categorical("scheduler_type", ["linear", "cosine", "cosine_with_restarts"]),
-        "max_grad_norm": trial.suggest_float("max_grad_norm", 0.1, 1.0)
+        "max_grad_norm": trial.suggest_float("max_grad_norm", 0.5, 5.0)
     }
 
 def hpo_model_init(trial):
@@ -41,20 +42,38 @@ def hpo_model_init(trial):
 def hpo_loss_init(model):
     return losses.ContrastiveLoss(model)
 
+def hpo_compute_objective(metrics):
+    return metrics["eval_git-issues_mcc"]
+
 args = SentenceTransformerTrainingArguments(
     output_dir=f"checkpoints/stella_contrastive",
     fp16=True,
     bf16=True,
-    eval_strategy="steps",
-    eval_steps=50,
-    save_strategy="steps",
-    save_steps=50,
-    save_total_limit=2,
+    eval_strategy="no",
+    save_strategy="no",
     logging_steps=10,
-    seed=42,
-    logging_dir="runs",
-    run_name="stella-contrastive",
+    run_name="stella-contrastive-hpo",
+    seed=SEED,
+    report_to=["tensorboard", "wandb"]
 )
 
+trainer = SentenceTransformerTrainer(
+    model=None,
+    args=args,
+    train_dataset=dataset_dict["train"],
+    eval_dataset=dataset_dict["valid"],
+    evaluator=binary_acc_evaluator,
+    model_init=hpo_model_init,
+    loss=hpo_loss_init,
+    logging_dir="./runs/hpo-logs"
+)
 
-#### TODO TODO TODO TODO TODO TODO TODO TODO
+best_trial = trainer.hyperparameter_search(
+    direction="maximize",
+    hp_space=hpo_search_space,
+    compute_objective=hpo_compute_objective,
+    n_trials=50,
+    backend="optuna"
+)
+
+print(best_trial)
