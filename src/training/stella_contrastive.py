@@ -39,6 +39,10 @@ def remove_html_tags(sample):
 
 dataset_dict = dataset_dict.map(remove_html_tags, num_proc=num_workers)
 
+dataset_dict["train"] = dataset_dict["train"].filter(lambda x: x["sentence1"] != "" and x["sentence2"] != "")
+dataset_dict["valid"] = dataset_dict["valid"].filter(lambda x: x["sentence1"] != "" and x["sentence2"] != "")
+dataset_dict["test"] = dataset_dict["test"].filter(lambda x: x["sentence1"] != "" and x["sentence2"] != "")
+
 model = SentenceTransformer("NovaSearch/stella_en_400M_v5",
                             trust_remote_code=True)
 
