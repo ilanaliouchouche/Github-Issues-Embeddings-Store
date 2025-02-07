@@ -49,7 +49,7 @@ binary_acc_evaluator = BinaryClassificationEvaluator(
 def hpo_search_space(trial):
     return {
         "num_train_epochs": trial.suggest_int("num_train_epochs", 1, 5),
-        "per_device_train_batch_size": trial.suggest_categorical("per_device_train_batch_size", [8, 16, 32, 64]),
+        "per_device_train_batch_size": trial.suggest_categorical("per_device_train_batch_size", [8, 16, 32]),
         "learning_rate": trial.suggest_float("learning_rate", 1e-6, 1e-4, log=True),
         "warmup_ratio": trial.suggest_float("warmup_ratio", 0.05, 0.3),
         "weight_decay": trial.suggest_float("weight_decay", 0.0, 0.3),
