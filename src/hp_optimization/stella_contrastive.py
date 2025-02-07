@@ -2,8 +2,11 @@ from bs4 import BeautifulSoup
 from datasets import load_dataset
 from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses, SentenceTransformerTrainingArguments
 from sentence_transformers.evaluation import BinaryClassificationEvaluator
+from transformers.utils import logging
 import multiprocessing
 import warnings
+
+logging.set_verbosity_error()
 
 warnings.filterwarnings("ignore")
 
@@ -12,6 +15,12 @@ SEED = 42
 num_workers = multiprocessing.cpu_count()
 
 dataset_dict = load_dataset("WhereIsAI/github-issue-similarity", "default")
+
+# FOR DEBUGGING
+# dataset_dict["train"] = dataset_dict["train"].select(range(32))
+# dataset_dict["valid"] = dataset_dict["valid"].select(range(32))
+# dataset_dict["test"] = dataset_dict["test"].select(range(32))
+
 print(dataset_dict)
 dataset_dict = dataset_dict.rename_columns({"text1": "sentence1", "text2": "sentence2"})
 
@@ -19,7 +28,8 @@ binary_acc_evaluator = BinaryClassificationEvaluator(
     sentences1=dataset_dict["valid"]["sentence1"],
     sentences2=dataset_dict["valid"]["sentence2"],
     labels=dataset_dict["valid"]["label"],
-    name="git-issues"
+    name="git-issues",
+    write_csv=False
 )
 
 def remove_html_tags(sample):
@@ -48,7 +58,7 @@ def hpo_loss_init(model):
     return losses.ContrastiveLoss(model)
 
 def hpo_compute_objective(metrics):
-    return metrics["eval_git-issues_mcc"]
+    return metrics["eval_git-issues_cosine_mcc"]
 
 args = SentenceTransformerTrainingArguments(
     output_dir=f"checkpoints/stella_contrastive",
@@ -59,8 +69,9 @@ args = SentenceTransformerTrainingArguments(
     logging_steps=10,
     run_name="stella-contrastive-hpo",
     seed=SEED,
-    logging_dir="./runs/hpo-logs",
-    report_to=["tensorboard"]
+    logging_dir="./runs/hpo-stella-contrastive",
+    report_to=["tensorboard"],
+    disable_tqdm=True
 )
 
 trainer = SentenceTransformerTrainer(
@@ -77,7 +88,7 @@ best_trial = trainer.hyperparameter_search(
     direction="maximize",
     hp_space=hpo_search_space,
     compute_objective=hpo_compute_objective,
-    n_trials=50,
+    n_trials=5,
     backend="optuna"
 )
 
