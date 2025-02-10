@@ -49,13 +49,13 @@ binary_acc_evaluator = BinaryClassificationEvaluator(
 model = SentenceTransformer("prdev/mini-gte",
                             trust_remote_code=True)
 
-loss = losses.MultipleNegativesRankingLoss(model)
+loss = losses.CachedMultipleNegativesSymmetricRankingLoss(model)
 
 args = SentenceTransformerTrainingArguments(
-    output_dir=f"checkpoints/gte-mnrl",
-    num_train_epochs=4,
-    per_device_train_batch_size=128,
-    learning_rate=4e-5,
+    output_dir=f"checkpoints/gte-csmnrl",
+    num_train_epochs=5,
+    per_device_train_batch_size=512,
+    learning_rate=4e-6,
     warmup_ratio=0.15,
     weight_decay=0.2,
     lr_scheduler_type='cosine',
@@ -66,9 +66,9 @@ args = SentenceTransformerTrainingArguments(
     save_strategy="epoch",
     save_total_limit=2,
     logging_steps=50,
-    run_name="gte-mnrl",
+    run_name="gte-csmnrl",
     seed=SEED,
-    logging_dir="./runs/gte-mnrl",
+    logging_dir="./runs/gte-csmnrl",
     report_to=["tensorboard"],
     disable_tqdm=False,
     load_best_model_at_end=True
@@ -87,4 +87,4 @@ trainer.train()
 
 print(trainer.evaluate(dataset_dict["test"], binary_acc_evaluator))
 
-trainer.save_model(f"checkpoints/gte-mnrl/best-model")
+trainer.save_model(f"checkpoints/gte-csmnrl/best-model")

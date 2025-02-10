@@ -44,7 +44,7 @@ dataset_dict["test"] = dataset_dict["test"].filter(lambda x: x["sentence1"] != "
 
 print(dataset_dict)
 
-model = SentenceTransformer("Alibaba-NLP/gte-base-en-v1.5",
+model = SentenceTransformer("prdev/mini-gte",
                             trust_remote_code=True)
 
 loss = losses.ContrastiveLoss(model)
@@ -52,7 +52,7 @@ loss = losses.ContrastiveLoss(model)
 args = SentenceTransformerTrainingArguments(
     output_dir=f"checkpoints/gte-contrastive",
     num_train_epochs=3,
-    per_device_train_batch_size=6,
+    per_device_train_batch_size=32,
     learning_rate=4e-6,
     warmup_ratio=0.15,
     weight_decay=0.2,

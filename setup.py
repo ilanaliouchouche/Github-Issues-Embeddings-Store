@@ -17,7 +17,6 @@ setup(
         'tokenizers',
         'sentence-transformers',
         'xformers',
-        'wandb',
         'tensorboard',
         'optuna',
         'bs4',
