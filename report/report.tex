@@ -57,7 +57,11 @@
 % 		\noindent DO WE WRITE SMTH HERE? alskdalskfmalsdkfslkdmflskdmflskdmflskdmflskdmflskd sldkfsmldkfms dlfksmdlkfmsldkf sdlkfmsdfbh
 % 	\end{abstract}
 % }
-
+\usepackage{booktabs}
+\usepackage{pgfplotstable}
+\usepackage{pgfplots}
+\usepackage{xcolor}
+\usepackage{siunitx}
 %----------------------------------------------------------------------------------------
 
 \begin{document}
@@ -168,6 +172,44 @@ The Cached Multiple Negatives Symmetric Ranking Loss (CMNSRL)~\autocite{cmnsrl} 
 
 TODO: Write here
 
+\begin{table*}[h]
+    \centering
+    \pgfplotstabletypeset[
+        col sep=comma,
+        header=true,
+        columns/model/.style={column name=Model, string type},
+        columns/accuracy/.style={column name=Accuracy, fixed, fixed zerofill, precision=4},
+        columns/threshold/.style={column name=Threshold, fixed, fixed zerofill, precision=4},
+        columns/f1/.style={column name=F1, fixed, fixed zerofill, precision=4},
+        columns/precision/.style={column name=Precision, fixed, fixed zerofill, precision=4},
+        columns/recall/.style={column name=Recall, fixed, fixed zerofill, precision=4},
+        columns/ap/.style={column name=AP, fixed, fixed zerofill, precision=4},
+        columns/mcc/.style={column name=MCC, fixed, fixed zerofill, precision=4},
+        every head row/.style={before row=\toprule, after row=\midrule},
+        every last row/.style={after row=\bottomrule}
+    ]{binary_results_2025-02-12_18-51-28.csv}
+    \caption{Binary performance for different models}
+    \label{tab:binary_performance}
+\end{table*}
+
+\begin{table*}[h]
+    \centering
+    \pgfplotstabletypeset[
+        col sep=comma,
+        header=true,
+        columns/model/.style={column name=Model, string type},
+        columns/mrr/.style={column name=MRR, fixed, fixed zerofill, precision=4},
+        columns/hits@1/.style={column name=Hits@1, fixed, fixed zerofill, precision=4},
+        columns/hits@5/.style={column name=Hits@5, fixed, fixed zerofill, precision=4},
+        columns/hits@10/.style={column name=Hits@10, fixed, fixed zerofill, precision=4},
+        columns/hits@20/.style={column name=Hits@20, fixed, fixed zerofill, precision=4},
+        columns/time/.style={column name=Time, fixed, fixed zerofill, precision=6},
+        every head row/.style={before row=\toprule, after row=\midrule},
+        every last row/.style={after row=\bottomrule}
+    ]{retrieval_results_2025-02-12_18-58-38.csv}
+    \caption{Retrieval metrics for different models}
+    \label{tab:retrival_performance}
+\end{table*}
 
 
 %----------------------------------------------------------------------------------------
