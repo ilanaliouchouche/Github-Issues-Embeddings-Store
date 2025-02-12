@@ -5,6 +5,34 @@ import torch
 from datetime import datetime
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.evaluation import BinaryClassificationEvaluator
+from bs4 import BeautifulSoup
+from datasets import load_dataset
+import json
+
+NUM_CORES = os.cpu_count()
+
+CHECKPOINT_DIR = "./checkpoints"
+
+MODELS_PATH = {
+    model: os.path.join(CHECKPOINT_DIR, model, "best-model")
+    for model in os.listdir(CHECKPOINT_DIR)
+    if os.path.isdir(os.path.join(CHECKPOINT_DIR, model, "best-model"))
+}
+
+print(json.dumps(MODELS_PATH, indent=4))
+
+ds = load_dataset("WhereIsAI/github-issue-similarity", "default")
+
+ds["test"] = ds["test"].filter(lambda x: x["text1"] != "" and x["text2"] != "")
+
+ds = ds.rename_columns({"text1": "sentence1", "text2": "sentence2"})
+
+def remove_html_tags(sample):
+    sample["sentence1"] = BeautifulSoup(sample["sentence1"], "html.parser").get_text().strip()
+    sample["sentence2"] = BeautifulSoup(sample["sentence2"], "html.parser").get_text().strip()
+    return sample
+
+ds["test"] = ds["test"].map(remove_html_tags, num_proc=NUM_CORES)
 
 class BinaryRetrievalEvaluator:
     def __init__(self, models_path, dataset, save_path="rsrc"):
@@ -49,3 +77,9 @@ class BinaryRetrievalEvaluator:
         results_df.to_csv(filename, index=False)
         print(f"Results saved to {filename}")
         return results_df
+
+evaluator = BinaryRetrievalEvaluator(MODELS_PATH, ds)
+
+print(evaluator.evaluate())
+
+print("Evaluation done!")

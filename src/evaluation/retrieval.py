@@ -3,7 +3,8 @@ from bs4 import BeautifulSoup
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.evaluation import BinaryClassificationEvaluator
 from sklearn.feature_extraction.text import TfidfVectorizer
-from nltk.tokenize import word_tokenize
+from nltk.tokenize import word_tokenize  # type: ignore
+import nltk  # type: ignore
 from sentence_transformers.util import cos_sim
 import time
 import numpy as np
@@ -14,6 +15,10 @@ import pickle
 import os
 import gc
 import json
+
+nltk.download("punkt_tab")
+
+NUM_CORES = os.cpu_count()
 
 CHECKPOINT_DIR = "./checkpoints"
 
@@ -38,16 +43,11 @@ def remove_html_tags(sample):
     sample["sentence2"] = BeautifulSoup(sample["sentence2"], "html.parser").get_text().strip()
     return sample
 
-ds = ds.map(remove_html_tags, num_proc=8)
+ds = ds.map(remove_html_tags, num_proc=NUM_CORES)
 
 baseline_tfidf = TfidfVectorizer(tokenizer=word_tokenize, stop_words="english")
 
 baseline_tfidf.fit(ds["train"]["sentence1"] + ds["train"]["sentence2"])
-
-os.makedirs(os.path.join(CHECKPOINT_DIR, "baseline_tfidf"), exist_ok=True)
-with open(os.path.join(CHECKPOINT_DIR, "baseline_tfidf", "model.pkl"), "wb") as f:
-    pickle.dump(baseline_tfidf, f)
-
 
 
 class RetrievalEvaluator:
@@ -161,7 +161,7 @@ class RetrievalEvaluator:
         print(f"Results saved to {filename}")
         return results_df
 
-retr_eval = RetrievalEvaluator(MODELS_PATH, baseline_tfidf, ds, k_values=[1, 5, 10])
+retr_eval = RetrievalEvaluator(MODELS_PATH, baseline_tfidf, ds, k_values=[1, 5, 10, 20])
 
 print(retr_eval.evaluate())
 
