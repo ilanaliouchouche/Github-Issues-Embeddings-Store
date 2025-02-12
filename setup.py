@@ -13,6 +13,8 @@ setup(
         'accelerate',
         'matplotlib',
         'tqdm',
+        'nltk',
+        'wordcloud',
         'datasets',
         'tokenizers',
         'sentence-transformers',
